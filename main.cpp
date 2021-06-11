@@ -79,6 +79,7 @@ void addPrice(QAbstractItemModel *model, const QString &state,
 
 void OnNetworkReply(QNetworkReply *reply, QAbstractItemModel *model)
 {
+    model->removeRow(0);
     const QList<QString> States = {"VIC", "NSW", "QLD", "WA", "ACT"};
     QJsonDocument replyJson(QJsonDocument::fromJson(reply->readAll()));
     QJsonArray regionsData = replyJson["regions"].toArray();
@@ -129,6 +130,8 @@ QAbstractItemModel *createMailModel(QObject *parent)
     request.setSslConfiguration(config);
     manager->get(request);
 
+    model->insertRow(0);
+    model->setData(model->index(0, 0), "Loading...");
     return model;
 }
 
