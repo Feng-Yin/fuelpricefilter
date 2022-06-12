@@ -63,8 +63,8 @@
 
 void addPrice(QAbstractItemModel *model, const QString &state,
              const QString &type, const double &price, const QString &postcode,
-              const QString &name, const QString &suburb, const double &lat,
-              const double &lng)
+              const QString &name, const QString &suburb, const double &lng,
+              const double &lat)
 {
     model->insertRow(0);
     model->setData(model->index(0, 0), state);
@@ -73,8 +73,8 @@ void addPrice(QAbstractItemModel *model, const QString &state,
     model->setData(model->index(0, 3), postcode);
     model->setData(model->index(0, 4), QString(name).replace("11-Seven", "Seven-11"));
     model->setData(model->index(0, 5), suburb);
-    model->setData(model->index(0, 6), lat);
-    model->setData(model->index(0, 7), lng);
+    model->setData(model->index(0, 6), lng);
+    model->setData(model->index(0, 7), lat);
 }
 
 void OnNetworkReply(QNetworkReply *reply, QAbstractItemModel *model)
@@ -86,18 +86,23 @@ void OnNetworkReply(QNetworkReply *reply, QAbstractItemModel *model)
     for(auto regionValue : regionsData)
     {
         QJsonObject regionData = regionValue.toObject();
+        qDebug()<< "checking" << regionData["region"].toString();
         if(!States.contains(regionData["region"].toString()))
         {
+            qDebug()<< "skip" << regionData["region"].toString();
             continue;
         }
         QJsonArray pricesData = regionData["prices"].toArray();
         for (auto priceValue : pricesData)
         {
             QJsonObject priceData = priceValue.toObject();
-            addPrice(model, priceData["state"].toString(), priceData["type"].toString(),
+            qDebug()<< "adding" << priceData["state"].toString();
+            // using regionData["region"].toString() instead of priceData["state"].toString()
+            // because ACT's priceData["state"].toString() is NSW
+            addPrice(model, regionData["region"].toString(), priceData["type"].toString(),
                     priceData["price"].toDouble(), priceData["postcode"].toString(),
                     priceData["name"].toString(), priceData["suburb"].toString(),
-                    priceData["lat"].toDouble(), priceData["lng"].toDouble());
+                    priceData["lng"].toDouble(), priceData["lat"].toDouble());
         }
     }
 }
@@ -114,8 +119,8 @@ QAbstractItemModel *createMailModel(QObject *parent)
     model->setHeaderData(3, Qt::Horizontal, QObject::tr("Postcode"));
     model->setHeaderData(4, Qt::Horizontal, QObject::tr("Name"));
     model->setHeaderData(5, Qt::Horizontal, QObject::tr("Suburb"));
-    model->setHeaderData(6, Qt::Horizontal, QObject::tr("Lat"));
-    model->setHeaderData(7, Qt::Horizontal, QObject::tr("Lng"));
+    model->setHeaderData(6, Qt::Horizontal, QObject::tr("Lng"));
+    model->setHeaderData(7, Qt::Horizontal, QObject::tr("Lat"));
 
     auto manager = new QNetworkAccessManager();
     QObject::connect(manager, &QNetworkAccessManager::finished, [=](QNetworkReply *reply) { OnNetworkReply(reply, model); });
@@ -141,6 +146,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     Window window;
     window.setSourceModel(createMailModel(&window));
+    window.setWindowTitle("Fuel Price Filter");
     window.show();
     return app.exec();
 }
